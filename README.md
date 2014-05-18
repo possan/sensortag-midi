@@ -13,4 +13,5 @@ Naturally all those sensors needs to be connect to MIDI somehow, this project do
 
 * **Processing** - Provides visual feedback of which sides of the cubes are in front/which sounds are playing, also listens for CC events on a MIDI port and updates the display accordingly.
 
-Presented at MIDIHACK 2014 with sensors attached to a huge inflatable cube.
+Presented at [MIDIHACK](http://midihack.com) 2014 with sensors attached to a huge inflatable cube.
+!["Inflatable MIDI Cube"](https://raw.githubusercontent.com/possan/sensortag-midi/master/midikub.jpg)
