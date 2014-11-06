@@ -2,33 +2,25 @@ var http = require('http');
 var fs = require('fs');
 var midi = require('midi');
 
-
-
-
-
-
-
-
-
-//
-// E997B0FD-A0E7-4458-A56E-5B0A6657799E 2
-
 var id_order = [
-    'E997B0FD-A0E7-4458-A56E-5B0A6657799E',
-    '48EB35A4-9780-4E1C-8CBC-BB59409724E6'
+    'E997B0FD-A0E7-4458-A56E-5B0A6657799E', // 10+
+    '48EB35A4-9780-4E1C-8CBC-BB59409724E6', // 20+
+    '21F26E62-1300-46F8-B84D-F86F28997D25', // 30+
 ];
 var id_data = {};
 var midi_state = {};
 var last_midi_state = {};
 
 function handlePost(data) {
-    // console.log('Got POST: ' + JSON.stringify(data));
-    var index = id_order.indexOf(data.id);
-    if (index == -1) {
-        id_order.push(data.id);
-        index = id_order.length - 1;
+    console.log('Got POST: ' + JSON.stringify(data));
+    if (data.id) {
+        var index = id_order.indexOf(data.id);
+        if (index == -1) {
+            id_order.push(data.id);
+            index = id_order.length - 1;
+        }
+        id_data[index] = data;
     }
-    id_data[index] = data;
 }
 
 server = http.createServer( function(req, res) {
@@ -38,15 +30,18 @@ server = http.createServer( function(req, res) {
             body += data;
         });
         req.on('end', function () {
-            // console.log("Body: " + body);
-            handlePost(JSON.parse(body));
+            try {
+                handlePost(JSON.parse(body));
+            } catch(e) {
+                console.error(e);
+            }
         });
         res.writeHead(200, {'Content-Type': 'text/plain'});
         res.end('ok');
     }
 });
 
-port = 8080;
+port = 8083;
 host = '127.0.0.1';
 server.listen(port, host);
 console.log('Listening at http://' + host + ':' + port);
@@ -73,13 +68,18 @@ function interpMIDI(cc, value) {
 
 var output = new midi.output();
 output.getPortCount();
-output.getPortName(0);
+console.log('Sending MIDI to port #0: ' + output.getPortName(0));
 output.openPort(0);
 
 var output2 = new midi.output();
 output2.getPortCount();
-output2.getPortName(2);
+console.log('Sending MIDI to port #2: ' + output2.getPortName(2));
 output2.openPort(2);
+
+// send a little hello world message over midi
+output.sendMessage([0xB0,0,0]);
+output.sendMessage([0xB0,0,1]);
+output.sendMessage([0xB0,0,0]);
 
 var broadcast_timer = 0;
 
@@ -122,9 +122,6 @@ function sendMIDI() {
             var y = id_data[d].y;
             var z = id_data[d].z;
 
-            // console.log(d, x,y,z, x*y*z, effectcurve(x), effectcurve(y), effectcurve(z));
-            console.log(d, z);
-
             var side = 0;
             if (x > 0.5) {
                 side = 1;
@@ -140,16 +137,7 @@ function sendMIDI() {
                 side = 4;
             }
 
-            console.log(side);
-
-            /*
-            interpMIDI(base + 0, (side == 0) ? 127 : 0);
-            interpMIDI(base + 1, (side == 1) ? 127 : 0);
-            interpMIDI(base + 2, (side == 2) ? 127 : 0);
-            interpMIDI(base + 3, (side == 3) ? 127 : 0);
-            interpMIDI(base + 4, (side == 4) ? 127 : 0);
-            interpMIDI(base + 5, (side == 5) ? 127 : 0);
-            */
+            // console.log(side);
 
             interpMIDI(base + 0, lerp( x, 0.1, 0.8, 0, 127));
             interpMIDI(base + 1, lerp(-x, 0.1, 0.8, 0, 127));
@@ -159,25 +147,14 @@ function sendMIDI() {
             interpMIDI(base + 5, lerp(-z, 0.1, 0.8, 0, 127));
 
             interpMIDI(base + 6, 90.0 * (effectcurve(x) + effectcurve(y) + effectcurve(z)));
-        //    interpMIDI(base + 7, effectcurve(y));
-        //    interpMIDI(base + 8, effectcurve(z));
-
-            // x = Math.round(x * 5) / 5.0;
-            // y = Math.round(y * 5) / 5.0;
-            // z = Math.round(z * 5) / 5.0;
 
             setMIDI(base + 9, side);
-
-            /*
-            interpMIDI(base + 0, 64 + (x * 64));
-            interpMIDI(base + 1, 64 + (y * 64));
-            interpMIDI(base + 2, 64 + (z * 64));
-            */
         }
     }
 
     // send midi state to midi out
     var str = '';
+    var anychange = false;
 
     for(var key in midi_state) {
         var value = Math.round(midi_state[key]);
@@ -189,13 +166,16 @@ function sendMIDI() {
         if (value != last_midi_state[key]) { // || (broadcast_timer % 50) == 0) {
             // console.log('Send MIDI CC #' + key + ' value ' + value);
             last_midi_state[key] = value;
+            anychange = true;
 
             output.sendMessage([0xB0,0+key,value]);
             output2.sendMessage([0xB0,0+key,value]);
         }
     }
 
-    console.log(str);
+    if (str != '' && anychange) {
+        console.log(str);
+    }
 
     broadcast_timer ++;
 
@@ -203,7 +183,7 @@ function sendMIDI() {
 }
 
 function queueMIDI() {
-    setTimeout(sendMIDI, 20);
+    setTimeout(sendMIDI, 30);
 }
 
 queueMIDI();
