@@ -29,6 +29,7 @@
 }
 
 - (void) setTarget:(NSString *)url {
+    NSLog(@"Set target url: %@", url);
     self->targetUrl = [NSString stringWithString:url];
 }
 
@@ -302,7 +303,7 @@
             if ([aChar.UUID isEqual:[CBUUID UUIDWithString:@"f000aa13-0451-4000-b000-000000000000"]])
             {
                 NSLog(@"Set interval");
-                uint8_t val = 20;
+                uint8_t val = 15;
                 NSData* valData = [NSData dataWithBytes:(void*)&val length:sizeof(val)];
                 [aPeripheral writeValue:valData forCharacteristic:aChar type:CBCharacteristicWriteWithResponse];
             }
@@ -345,7 +346,7 @@
     NSURLResponse *response;
     NSError *err;
     NSData *responseData = [NSURLConnection sendSynchronousRequest:request returningResponse:&response error:&err];
-    NSLog(@"responseData: %@", responseData);
+    // NSLog(@"responseData: %@", responseData);
 }
 
 /*
