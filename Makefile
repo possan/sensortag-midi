@@ -1,8 +1,9 @@
-all: midiapp btapp
+all: midiapp btapp pack
 
 OUTPUT=dist
 MIDIBUNDLE=${OUTPUT}/SensorTag\ MIDI\ Server.app
 BTBUNDLE=${OUTPUT}/SensorTag\ Bluetooth\ Server.app
+ARCHIVE=SensorTag-Apps.zip
 
 midiapp:
 	rm -rf ${MIDIBUNDLE}
@@ -41,3 +42,7 @@ btapp:
 	touch ${BTBUNDLE}/Contents/Info.plist
 	rm -rf ${BTBUNDLE}/Contents/Resources/app/*
 	cp BundleAssets/SensorTagMidi ${BTBUNDLE}/Contents/Resources/app/
+
+pack:
+	cd ${OUTPUT} && rm -rf ${ARCHIVE}
+	cd ${OUTPUT} && zip -r ${ARCHIVE} *app
