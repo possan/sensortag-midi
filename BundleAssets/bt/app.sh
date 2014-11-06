@@ -4,9 +4,22 @@ cd "$(dirname "$0")"
 # Start BT server
 ../Resources/app/SensorTagMidi poll http://127.0.0.1:8083 >/tmp/SensorTagMidi.log 2>&1 &
 
-# launch the cocoa app
-./apache-callback-mac -url "file://$(dirname "$0")/../Resources/index.html"
+# Get PID
+sleep 0.1
+PID=`ps aux|grep SensorTagMidi|grep -v grep|awk '{print $2}'`
 
-# Stop BT server
-PID=`ps aux|grep SensorTagMidi|awk '{print $2}'`
-kill ${PID}
+if [ "${PID}" ]
+then
+
+	# launch the cocoa app
+	./apache-callback-mac -url "file://$(dirname "$0")/../Resources/index.html"
+
+	# Stop BT server
+	kill ${PID}
+
+else
+
+	# Didn't start at all,
+	exit 1
+
+fi
