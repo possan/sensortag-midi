@@ -5,11 +5,187 @@
 		background-color: #ddd;
 		color: #444;
 	}
+
+	select {
+		width: 100%;
+		height: 150px;
+	}
+
+	textarea {
+		width: 100%;
+	}
 </style>
+<script type="text/javascript">
+
+	window.addEventListener('load', function() {
+
+		console.log('load.');
+
+		var backend_url = 'http://127.0.0.1:8083/';
+		var sensor_order = [];
+		var sensor_data = {};
+		var lastorderstring = '';
+		var selected_index = -1;
+
+		var select_el = document.getElementById('orderlist');
+		var moveup_el = document.getElementById('moveup');
+		var movedown_el = document.getElementById('movedown');
+		var state_el = document.getElementById('state');
+
+		function GET(url, callback) {
+			var request = new XMLHttpRequest();
+			request.open('GET', url, true);
+			request.onload = function() {
+				if (request.status >= 200 && request.status < 400) {
+					// Success!
+					var data = JSON.parse(request.responseText);
+					callback(data);
+				} else {
+					// We reached our target server, but it returned an error
+					callback(null);
+				}
+			};
+			request.onerror = function() {
+				// There was a connection error of some sort
+				callback(null);
+			};
+			request.send();
+		}
+
+		function POST(url, data, callback) {
+			var request = new XMLHttpRequest();
+			request.open('POST', url, true);
+			request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+			request.send(data);
+		}
+
+		function moveOrder(delta) {
+			console.log('selected item', selected_index, 'delta', delta);
+			if (selected_index > -1) {
+				console.log('old_order', sensor_order);
+				var other_index = selected_index + delta;
+				if (other_index < 0) {
+					return;
+				}
+				if (other_index >= sensor_order.length) {
+					return;
+				}
+
+				var new_order = sensor_order;
+				var t1 = new_order[selected_index];
+				new_order[selected_index] = new_order[other_index];
+				new_order[other_index] = t1;
+				console.log('new_order', new_order);
+
+				select_el.selectedIndex = other_index;
+				selected_index = other_index;
+
+				// post data
+				updateOrderList();
+
+
+				POST(backend_url, JSON.stringify({ order: new_order }), function() {
+					queuePoll();
+				});
+
+			}
+		}
+
+		function updateOrderList() {
+			console.log('update order list', sensor_order);
+
+			select_el.options.length = sensor_order.length;
+			for(var i=0; i < sensor_order.length; i++) {
+				var id = sensor_order[i];
+				var ds = 'N/A';
+				if (sensor_data[id]) {
+					ds = JSON.stringify(sensor_data[id]);
+				}
+				var label = '#' + i + ' - ' + id.substring(0,8) + ' - ' +ds;
+				select_el.options[i].value = id
+				select_el.options[i].text = label
+				 // = new Option('#' + i + ' - ' + id.substring(0,8) + ' - ' +ds, id);
+			}
+			// select_el.selectedIndex = selected_index;
+		}
+
+		moveup_el.addEventListener('click', moveOrder.bind(this, -1));
+		movedown_el.addEventListener('click', moveOrder.bind(this, 1));
+
+		function selectItem() {
+			selected_index = select_el.selectedIndex;
+			console.log('selection changed to ' + selected_index);
+		}
+
+		select_el.addEventListener('mouseDown', selectItem.bind(this));
+		select_el.addEventListener('change', selectItem.bind(this));
+
+		function pollState() {
+			GET(backend_url, function(data) {
+				state_el.value = JSON.stringify(data, null, 2);
+				if (data) {
+
+					if (data.order) {
+						sensor_order = data.order;
+						var orderstring = sensor_order.join(',');
+						if (orderstring != lastorderstring) {
+						}
+					}
+
+					if (data.data) {
+						for(var k in data.data) {
+							var d = data.data[k];
+							if (d) {
+								d.order = k;
+								sensor_data[d.id] = d;
+								delete(d.id);
+							}
+						}
+					}
+				}
+
+				updateOrderList();
+
+				queuePoll();
+			});
+		}
+
+		var queuetimer = 0;
+
+		function queuePoll() {
+			if (queuetimer != 0) {
+				clearTimeout(queuetimer);
+				queuetimer = 0;
+			}
+
+			queuetimer = setTimeout(pollState.bind(this), 300);
+		}
+
+		queuePoll();
+
+	});
+
+</script>
 <title>SensorTag MIDI Server</title>
 <body>
 
-	SensorTag MIDI Server is Running.
+	<p>
+		SensorTag MIDI Server is Running.
+	</p>
+
+	<p>
+		<select id="orderlist" multiple>
+		</select>
+	</p>
+
+	<p>
+	<button id="moveup">MOVE UP</button>
+	<button id="movedown">MOVE DOWN</button>
+	</p>
+
+	<p>
+		<textarea id="state" rows="20"></textarea>
+	</p>
 
 </body>
 </html>

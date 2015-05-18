@@ -13,7 +13,10 @@ var last_midi_state = {};
 
 function handlePost(data) {
     console.log('Got POST: ' + JSON.stringify(data));
-    if (data.id) {
+    if (data.order) {
+        id_order = data.order;
+        id_data = [];
+    } else if (data.id) {
         var index = id_order.indexOf(data.id);
         if (index == -1) {
             id_order.push(data.id);
@@ -24,7 +27,15 @@ function handlePost(data) {
 }
 
 server = http.createServer( function(req, res) {
-    if (req.method == 'POST') {
+    if (req.method == 'GET') {
+        var json = JSON.stringify({
+            order: id_order,
+            data: id_data
+        });
+        res.writeHead(200, {'Content-Type': 'text/json', 'Access-Control-Allow-Origin': '*'});
+        res.end(json);
+    }
+    else if (req.method == 'POST') {
         var body = '';
         req.on('data', function (data) {
             body += data;
@@ -36,7 +47,7 @@ server = http.createServer( function(req, res) {
                 console.error(e);
             }
         });
-        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.writeHead(200, {'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*'});
         res.end('ok');
     }
 });
