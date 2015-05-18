@@ -303,7 +303,7 @@
             if ([aChar.UUID isEqual:[CBUUID UUIDWithString:@"f000aa13-0451-4000-b000-000000000000"]])
             {
                 NSLog(@"Set interval");
-                uint8_t val = 1;
+                uint8_t val = 10;
                 NSData* valData = [NSData dataWithBytes:(void*)&val length:sizeof(val)];
                 [aPeripheral writeValue:valData forCharacteristic:aChar type:CBCharacteristicWriteWithResponse];
             }
